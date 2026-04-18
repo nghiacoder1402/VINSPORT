@@ -66,6 +66,15 @@ VALUES
 (N'Quần short Nike Flex', N'Quần short linh hoạt', 1, 3),
 (N'Áo khoác Puma Sport', N'Áo khoác thể thao', 3, 6),
 (N'Giày Reebok Nano', N'Giày training gym', 4, 5);
+--thêm sản phẩm
+INSERT INTO Products (name, description, brand_id, category_id)
+VALUES
+(N'Áo bóng đá Puma Future 2026', N'Áo bóng đá thoáng khí, thiết kế trẻ trung', 3, 1),
+(N'Áo gym Nike Dri-FIT Elite', N'Áo gym thấm hút mồ hôi, co giãn tốt', 1, 2),
+(N'Quần short Adidas Runner', N'Quần short chạy bộ nhẹ, thoải mái khi vận động', 2, 3),
+(N'Giày chạy Nike Air Zoom', N'Giày chạy bộ đệm êm, hỗ trợ bám đường tốt', 1, 5),
+(N'Áo khoác Under Armour Storm', N'Áo khoác thể thao chống gió, chống nước nhẹ', 5, 6),
+(N'Quần dài Puma Training Pro', N'Quần dài thể thao mềm mại, phù hợp tập luyện', 3, 4);
 --7. PRODUCT VARIANTS
 INSERT INTO ProductVariants (product_id, size_id, color_id, price, stock)
 VALUES
@@ -108,6 +117,38 @@ VALUES
 
 (12, 2, 2, 1200000, 12),
 (12, 3, 3, 1200000, 10);
+--THÊM SẢN PHẨM
+INSERT INTO ProductVariants (product_id, size_id, color_id, price, stock)
+VALUES
+-- 13. Áo bóng đá Puma Future 2026
+(13, 1, 1, 480000, 20),
+(13, 2, 2, 480000, 25),
+(13, 3, 4, 480000, 18),
+
+-- 14. Áo gym Nike Dri-FIT Elite
+(14, 1, 1, 390000, 30),
+(14, 2, 3, 390000, 28),
+(14, 3, 2, 390000, 22),
+
+-- 15. Quần short Adidas Runner
+(15, 2, 1, 310000, 35),
+(15, 3, 6, 310000, 30),
+(15, 4, 2, 310000, 20),
+
+-- 16. Giày chạy Nike Air Zoom
+(16, 2, 2, 2200000, 12),
+(16, 3, 1, 2200000, 10),
+(16, 4, 4, 2200000, 8),
+
+-- 17. Áo khoác Under Armour Storm
+(17, 2, 1, 950000, 15),
+(17, 3, 6, 950000, 12),
+(17, 4, 2, 950000, 10),
+
+-- 18. Quần dài Puma Training Pro
+(18, 2, 1, 420000, 25),
+(18, 3, 5, 420000, 20),
+(18, 4, 6, 420000, 18);
 --8.SALES
 INSERT INTO Sales (name, discount_percent, start_date, end_date)
 VALUES 

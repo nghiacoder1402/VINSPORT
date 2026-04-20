@@ -17,7 +17,10 @@ CREATE TABLE Users (
     password NVARCHAR(255) NOT NULL,
     phone NVARCHAR(15),
     address NVARCHAR(255),
-    created_at DATETIME DEFAULT GETDATE()
+    role NVARCHAR(20) NOT NULL DEFAULT N'user',
+    created_at DATETIME DEFAULT GETDATE(),
+
+    CHECK (role IN (N'admin', N'user'))
 );
 
 -- ======================
@@ -117,6 +120,7 @@ CREATE TABLE ProductSales (
     FOREIGN KEY (product_id) REFERENCES Products(product_id) ON DELETE CASCADE,
     FOREIGN KEY (sale_id) REFERENCES Sales(sale_id) ON DELETE CASCADE
 );
+
 -- ======================
 -- PRODUCT IMAGES
 -- ======================

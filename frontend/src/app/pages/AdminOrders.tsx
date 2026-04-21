@@ -3,7 +3,13 @@ import api from "../api/api";
 
 type PaymentMethod = "cod" | "banking" | string;
 type PaymentStatus = "pending" | "paid" | "failed" | string;
-type OrderStatus = "pending" | "confirmed" | "shipping" | "completed" | "cancelled" | string;
+type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "shipping"
+  | "completed"
+  | "cancelled"
+  | string;
 
 type AdminOrder = {
   id: number | string;
@@ -19,23 +25,23 @@ type AdminOrder = {
 
 const MOCK_ORDERS: AdminOrder[] = [
   {
-    id: 7,
-    customerName: "Chu Minh",
-    phone: "0867788204",
-    address: "Hà Nội",
-    totalAmount: 950000,
-    paymentMethod: "banking",
+    id: 9,
+    customerName: "anhemtoi",
+    phone: "12334234",
+    address: "-",
+    totalAmount: 420000,
+    paymentMethod: "cod",
     paymentStatus: "pending",
     orderStatus: "pending",
     createdAt: new Date().toISOString(),
   },
   {
     id: 8,
-    customerName: "Nguyễn An",
-    phone: "0988123456",
-    address: "Đà Nẵng",
-    totalAmount: 420000,
-    paymentMethod: "cod",
+    customerName: "Chu Minh",
+    phone: "0867788204",
+    address: "Hà Nội",
+    totalAmount: 950000,
+    paymentMethod: "banking",
     paymentStatus: "pending",
     orderStatus: "confirmed",
     createdAt: new Date().toISOString(),
@@ -59,7 +65,7 @@ function normalizeOrder(item: any): AdminOrder {
       item?.name ||
       "Khách hàng",
     phone: item?.phone || item?.customer?.phone || "",
-    address: item?.address || item?.customer?.address || "",
+    address: item?.address || item?.customer?.address || "-",
     totalAmount: Number(item?.totalAmount ?? item?.total_amount ?? 0),
     paymentMethod: item?.paymentMethod || item?.payment_method || "cod",
     paymentStatus: item?.paymentStatus || item?.payment_status || "pending",
@@ -79,37 +85,6 @@ function formatPaymentMethod(method: string) {
   if (method === "banking") return "Chuyển khoản";
   if (method === "cod") return "COD";
   return method;
-}
-
-function formatPaymentStatus(status: string) {
-  if (status === "pending") return "Chờ xác nhận";
-  if (status === "paid") return "Đã thanh toán";
-  if (status === "failed") return "Thất bại";
-  return status;
-}
-
-function formatOrderStatus(status: string) {
-  if (status === "pending") return "Chờ xử lý";
-  if (status === "confirmed") return "Đã xác nhận";
-  if (status === "shipping") return "Đang giao";
-  if (status === "completed") return "Hoàn thành";
-  if (status === "cancelled") return "Đã hủy";
-  return status;
-}
-
-function paymentStatusClass(status: string) {
-  if (status === "paid") return "bg-green-100 text-green-700";
-  if (status === "pending") return "bg-orange-100 text-orange-700";
-  if (status === "failed") return "bg-red-100 text-red-700";
-  return "bg-slate-100 text-slate-700";
-}
-
-function orderStatusClass(status: string) {
-  if (status === "completed") return "bg-green-100 text-green-700";
-  if (status === "shipping") return "bg-blue-100 text-blue-700";
-  if (status === "confirmed") return "bg-emerald-100 text-emerald-700";
-  if (status === "cancelled") return "bg-red-100 text-red-700";
-  return "bg-slate-100 text-slate-700";
 }
 
 export default function AdminOrders() {
@@ -157,44 +132,48 @@ export default function AdminOrders() {
         String(order.customerName).toLowerCase().includes(q) ||
         String(order.phone ?? "").toLowerCase().includes(q) ||
         String(order.paymentMethod).toLowerCase().includes(q) ||
-        String(order.paymentStatus).toLowerCase().includes(q)
+        String(order.paymentStatus).toLowerCase().includes(q) ||
+        String(order.orderStatus).toLowerCase().includes(q)
       );
     });
   }, [orders, keyword]);
 
-  const handleConfirmPayment = async (order: AdminOrder) => {
-    const ok = window.confirm(
-      `Xác nhận đã nhận tiền cho đơn #${order.id}?`
+  const handleFieldChange = (
+    id: number | string,
+    field: "paymentStatus" | "orderStatus",
+    value: string
+  ) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === id ? { ...order, [field]: value } : order
+      )
     );
-    if (!ok) return;
+  };
 
+  const handleUpdateOrder = async (order: AdminOrder) => {
     try {
       setSavingId(order.id);
 
       try {
-        await api.put(`/admin/orders/${order.id}/payment-status`, {
-          status: "paid",
+        await api.put(`/admin/orders/${order.id}`, {
+          paymentStatus: order.paymentStatus,
+          orderStatus: order.orderStatus,
         });
       } catch {
         try {
-          await api.put(`/orders/${order.id}/payment-status`, {
-            status: "paid",
+          await api.put(`/orders/${order.id}`, {
+            paymentStatus: order.paymentStatus,
+            orderStatus: order.orderStatus,
           });
         } catch {
-          // fallback frontend-only demo
+          // fallback demo frontend-only
         }
       }
 
-      setOrders((prev) =>
-        prev.map((item) =>
-          item.id === order.id ? { ...item, paymentStatus: "paid" } : item
-        )
-      );
-
-      alert("Đã xác nhận thanh toán.");
+      alert("Cập nhật đơn hàng thành công.");
     } catch (error) {
-      console.error("Lỗi xác nhận thanh toán:", error);
-      alert("Không cập nhật được trạng thái thanh toán.");
+      console.error("Lỗi cập nhật đơn hàng:", error);
+      alert("Không cập nhật được đơn hàng.");
     } finally {
       setSavingId(null);
     }
@@ -205,7 +184,7 @@ export default function AdminOrders() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Quản lý đơn hàng</h1>
         <p className="text-slate-600 mt-2">
-          Xem đơn hàng và xác nhận thanh toán cho các đơn chuyển khoản.
+          Cập nhật trạng thái thanh toán và trạng thái đơn hàng trực tiếp.
         </p>
       </div>
 
@@ -236,13 +215,12 @@ export default function AdminOrders() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1200px] border-collapse">
+            <table className="w-full min-w-[1250px] border-collapse">
               <thead>
                 <tr className="bg-slate-100 text-left">
                   <th className="p-3 border-b">Mã đơn</th>
                   <th className="p-3 border-b">Khách hàng</th>
                   <th className="p-3 border-b">SĐT</th>
-                  <th className="p-3 border-b">Địa chỉ</th>
                   <th className="p-3 border-b">Tổng tiền</th>
                   <th className="p-3 border-b">Thanh toán</th>
                   <th className="p-3 border-b">TT thanh toán</th>
@@ -257,47 +235,61 @@ export default function AdminOrders() {
                     <td className="p-3 border-b font-semibold">#{order.id}</td>
                     <td className="p-3 border-b">{order.customerName}</td>
                     <td className="p-3 border-b">{order.phone || "-"}</td>
-                    <td className="p-3 border-b">{order.address || "-"}</td>
                     <td className="p-3 border-b font-medium">
                       {Number(order.totalAmount || 0).toLocaleString("vi-VN")} đ
                     </td>
                     <td className="p-3 border-b">
                       {formatPaymentMethod(order.paymentMethod)}
                     </td>
+
                     <td className="p-3 border-b">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${paymentStatusClass(
-                          order.paymentStatus
-                        )}`}
+                      <select
+                        value={order.paymentStatus}
+                        onChange={(e) =>
+                          handleFieldChange(
+                            order.id,
+                            "paymentStatus",
+                            e.target.value
+                          )
+                        }
+                        className="border rounded-lg px-3 py-2 min-w-[160px]"
                       >
-                        {formatPaymentStatus(order.paymentStatus)}
-                      </span>
+                        <option value="pending">Chờ xác nhận</option>
+                        <option value="paid">Đã thanh toán</option>
+                        <option value="failed">Thất bại</option>
+                      </select>
                     </td>
+
                     <td className="p-3 border-b">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${orderStatusClass(
-                          order.orderStatus
-                        )}`}
+                      <select
+                        value={order.orderStatus}
+                        onChange={(e) =>
+                          handleFieldChange(
+                            order.id,
+                            "orderStatus",
+                            e.target.value
+                          )
+                        }
+                        className="border rounded-lg px-3 py-2 min-w-[160px]"
                       >
-                        {formatOrderStatus(order.orderStatus)}
-                      </span>
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="confirmed">Đã xác nhận</option>
+                        <option value="shipping">Đang giao</option>
+                        <option value="completed">Hoàn thành</option>
+                        <option value="cancelled">Đã hủy</option>
+                      </select>
                     </td>
+
                     <td className="p-3 border-b">{formatDate(order.createdAt)}</td>
+
                     <td className="p-3 border-b">
-                      {
-                      order.paymentStatus !== "paid" ? (
-                        <button
-                          onClick={() => handleConfirmPayment(order)}
-                          disabled={savingId === order.id}
-                          className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-                        >
-                          {savingId === order.id
-                            ? "Đang lưu..."
-                            : "Xác nhận đã nhận tiền"}
-                        </button>
-                      ) : (
-                        <span className="text-slate-400 text-sm">-</span>
-                      )}
+                      <button
+                        onClick={() => handleUpdateOrder(order)}
+                        disabled={savingId === order.id}
+                        className="px-4 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-60"
+                      >
+                        {savingId === order.id ? "Đang lưu..." : "Cập nhật"}
+                      </button>
                     </td>
                   </tr>
                 ))}

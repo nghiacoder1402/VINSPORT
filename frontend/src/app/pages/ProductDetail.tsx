@@ -18,6 +18,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 type GuideUnit = "cm" | "inch";
 type GuideLabel = "Ngực" | "Eo" | "Hông";
+type ShoeGuideLabel = "CM" | "US Nam" | "US Nữ" | "UK";
 
 type ProductColor = {
   name: string;
@@ -30,6 +31,8 @@ type ProductVariant = {
   hex?: string;
   price?: number;
   stock?: number;
+  variantId?: number;
+  id?: number;
 };
 
 type Product = {
@@ -44,6 +47,7 @@ type Product = {
   sizes?: string[] | string | null;
   colors?: ProductColor[];
   variants?: ProductVariant[];
+  category?: string;
 };
 
 type SizeGuideRow = Record<string, string>;
@@ -111,7 +115,47 @@ const sizeGuideData: SizeGuideData = {
   },
 };
 
+const shoeGuideData: Record<ShoeGuideLabel, Record<string, string>> = {
+  CM: {
+    "38": "24.0",
+    "39": "24.5",
+    "40": "25.0",
+    "41": "25.5",
+    "42": "26.5",
+    "43": "27.0",
+    "44": "27.5",
+  },
+  "US Nam": {
+    "38": "6",
+    "39": "6.5",
+    "40": "7",
+    "41": "8",
+    "42": "8.5",
+    "43": "9.5",
+    "44": "10",
+  },
+  "US Nữ": {
+    "38": "7.5",
+    "39": "8",
+    "40": "8.5",
+    "41": "9.5",
+    "42": "10",
+    "43": "11",
+    "44": "11.5",
+  },
+  UK: {
+    "38": "5.5",
+    "39": "6",
+    "40": "6.5",
+    "41": "7.5",
+    "42": "8",
+    "43": "9",
+    "44": "9.5",
+  },
+};
+
 const defaultGuideSizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+const defaultShoeGuideSizes = ["38", "39", "40", "41", "42", "43", "44"];
 
 const parseSizes = (sizes: unknown): string[] => {
   if (Array.isArray(sizes)) {
@@ -204,7 +248,7 @@ export const ProductDetail = () => {
     if (!product) return [];
     return product.images && product.images.length > 0
       ? product.images
-      : [product.image].filter(Boolean) as string[];
+      : ([product.image].filter(Boolean) as string[]);
   }, [product]);
 
   const normalizedSizes = useMemo<string[]>(() => {
@@ -275,9 +319,16 @@ export const ProductDetail = () => {
   const displayPrice = currentVariant?.price ?? product?.price ?? 0;
   const stock = currentVariant?.stock ?? product?.stock ?? null;
 
+  const isShoeProduct = useMemo(() => {
+    const text =
+      `${product?.category ?? ""} ${product?.name ?? ""} ${product?.brand ?? ""}`.toLowerCase();
+    return text.includes("giày") || text.includes("shoe");
+  }, [product]);
+
   const guideSizes = useMemo<string[]>(() => {
-    return availableSizes.length > 0 ? availableSizes : defaultGuideSizes;
-  }, [availableSizes]);
+    if (availableSizes.length > 0) return availableSizes;
+    return isShoeProduct ? defaultShoeGuideSizes : defaultGuideSizes;
+  }, [availableSizes, isShoeProduct]);
 
   useEffect(() => {
     if (!product?.variants || product.variants.length === 0) return;
@@ -362,30 +413,30 @@ export const ProductDetail = () => {
       return;
     }
 
-   addToCart(
-  {
-    id: String(product.id ?? ""),
-    name: product.name ?? "",
-    price: displayPrice,
-    brand: product.brand ?? "",
-    description: product.description ?? "",
-    image: product.image ?? mainImage ?? "",
-    images: allImages,
-    sizes: normalizedSizes,
-    colors: product.colors ?? [],
-    variants: (product.variants ?? []).map((variant) => ({
-      variantId: Number((variant as any).variantId ?? (variant as any).id ?? 0),
-      size: String(variant.size ?? ""),
-      color: String(variant.color ?? ""),
-      hex: variant.hex ?? undefined,
-      price: Number(variant.price ?? displayPrice ?? 0),
-      stock: Number(variant.stock ?? 0),
-    })),
-  },
-  selectedSize,
-  selectedColor,
-  quantity
-);
+    addToCart(
+      {
+        id: String(product.id ?? ""),
+        name: product.name ?? "",
+        price: displayPrice,
+        brand: product.brand ?? "",
+        description: product.description ?? "",
+        image: product.image ?? mainImage ?? "",
+        images: allImages,
+        sizes: normalizedSizes,
+        colors: product.colors ?? [],
+        variants: (product.variants ?? []).map((variant) => ({
+          variantId: Number((variant as any).variantId ?? (variant as any).id ?? 0),
+          size: String(variant.size ?? ""),
+          color: String(variant.color ?? ""),
+          hex: variant.hex ?? undefined,
+          price: Number(variant.price ?? displayPrice ?? 0),
+          stock: Number(variant.stock ?? 0),
+        })),
+      },
+      selectedSize,
+      selectedColor,
+      quantity
+    );
 
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -609,7 +660,9 @@ export const ProductDetail = () => {
                 Hướng dẫn chọn kích cỡ
               </h2>
               <p className="text-sm text-slate-500 mt-2">
-                Chọn đơn vị và đối chiếu theo số đo cơ thể để chọn size phù hợp.
+                {isShoeProduct
+                  ? "Đối chiếu size giày theo chiều dài bàn chân và hệ quy đổi quốc tế."
+                  : "Chọn đơn vị và đối chiếu theo số đo cơ thể để chọn size phù hợp."}
               </p>
             </div>
 
@@ -623,88 +676,159 @@ export const ProductDetail = () => {
           </div>
 
           <div className="p-6">
-            <h3 className="text-xl font-bold uppercase tracking-[0.15em] mb-6">
-              Kích cỡ áo / quần
-            </h3>
+            {isShoeProduct ? (
+              <>
+                <h3 className="text-xl font-bold uppercase tracking-[0.15em] mb-6">
+                  Kích cỡ giày
+                </h3>
 
-            <div className="inline-flex border border-slate-200 mb-6">
-              <button
-                type="button"
-                onClick={() => setGuideUnit("inch")}
-                className={`px-5 py-3 font-medium ${
-                  guideUnit === "inch"
-                    ? "bg-white text-slate-900 border-b-2 border-slate-900"
-                    : "bg-slate-50 text-slate-500"
-                }`}
-              >
-                Inch
-              </button>
-              <button
-                type="button"
-                onClick={() => setGuideUnit("cm")}
-                className={`px-5 py-3 font-medium ${
-                  guideUnit === "cm"
-                    ? "bg-white text-slate-900 border-b-2 border-slate-900"
-                    : "bg-slate-50 text-slate-500"
-                }`}
-              >
-                cm
-              </button>
-            </div>
+                <div className="overflow-x-auto border">
+                  <table className="min-w-[760px] w-full border-collapse">
+                    <thead>
+                      <tr className="bg-black text-white">
+                        <th className="px-6 py-4 text-left text-sm font-bold border-r border-slate-700">
+                          Hệ size
+                        </th>
+                        {guideSizes.map((size: string) => (
+                          <th
+                            key={size}
+                            className="px-6 py-4 text-center text-sm font-bold whitespace-nowrap"
+                          >
+                            {size}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(["CM", "US Nam", "US Nữ", "UK"] as ShoeGuideLabel[]).map(
+                        (label: ShoeGuideLabel) => (
+                          <tr key={label} className="border-t">
+                            <td className="px-6 py-6 font-semibold text-slate-900 border-r bg-white whitespace-nowrap">
+                              {label}
+                            </td>
+                            {guideSizes.map((size: string) => (
+                              <td
+                                key={`${label}-${size}`}
+                                className="px-6 py-6 text-center text-slate-700 whitespace-nowrap"
+                              >
+                                {shoeGuideData[label][size]
+                                  ? label === "CM"
+                                    ? `${shoeGuideData[label][size]} cm`
+                                    : shoeGuideData[label][size]
+                                  : "-"}
+                              </td>
+                            ))}
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-            <div className="overflow-x-auto border">
-              <table className="min-w-[900px] w-full border-collapse">
-                <thead>
-                  <tr className="bg-black text-white">
-                    <th className="px-6 py-4 text-left text-sm font-bold border-r border-slate-700">
-                      Nhãn sản phẩm
-                    </th>
-                    {guideSizes.map((size: string) => (
-                      <th
-                        key={size}
-                        className="px-6 py-4 text-center text-sm font-bold whitespace-nowrap"
-                      >
-                        {size}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(["Ngực", "Eo", "Hông"] as GuideLabel[]).map((label: GuideLabel) => (
-                    <tr key={label} className="border-t">
-                      <td className="px-6 py-6 font-semibold text-slate-900 border-r bg-white whitespace-nowrap">
-                        {label}
-                      </td>
-                      {guideSizes.map((size: string) => (
-                        <td
-                          key={`${label}-${size}`}
-                          className="px-6 py-6 text-center text-slate-700 whitespace-nowrap"
-                        >
-                          {sizeGuideData[guideUnit][label][size]
-                            ? `${sizeGuideData[guideUnit][label][size]} ${guideUnit}`
-                            : "-"}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                <p className="text-sm text-slate-500 mt-4">
+                  Cuộn ngang để xem đầy đủ nếu màn hình nhỏ.
+                </p>
 
-            <p className="text-sm text-slate-500 mt-4">
-              Cuộn ngang để xem đầy đủ nếu màn hình nhỏ.
-            </p>
+                <div className="mt-8 bg-slate-50 rounded-xl p-5">
+                  <h4 className="font-bold text-slate-900 mb-3">Mẹo chọn size giày</h4>
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-slate-600">
+                    <li>Đo chiều dài bàn chân từ gót đến đầu ngón dài nhất.</li>
+                    <li>Nên đo vào cuối ngày để có kích thước sát thực tế hơn.</li>
+                    <li>
+                      Nếu nằm giữa 2 size, ưu tiên size lớn hơn để đi thoải mái.
+                    </li>
+                  </ul>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold uppercase tracking-[0.15em] mb-6">
+                  Kích cỡ áo / quần
+                </h3>
 
-            <div className="mt-8 bg-slate-50 rounded-xl p-5">
-              <h4 className="font-bold text-slate-900 mb-3">Mẹo chọn size</h4>
-              <ul className="list-disc pl-5 space-y-2 text-sm text-slate-600">
-                <li>Đo ngực, eo, hông sát cơ thể nhưng không siết quá chặt.</li>
-                <li>Nếu số đo nằm giữa 2 size, ưu tiên size lớn hơn để mặc thoải mái.</li>
-                <li>
-                  Với đồ thể thao form ôm, chọn đúng size; với form rộng, có thể tăng 1 size.
-                </li>
-              </ul>
-            </div>
+                <div className="inline-flex border border-slate-200 mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setGuideUnit("inch")}
+                    className={`px-5 py-3 font-medium ${
+                      guideUnit === "inch"
+                        ? "bg-white text-slate-900 border-b-2 border-slate-900"
+                        : "bg-slate-50 text-slate-500"
+                    }`}
+                  >
+                    Inch
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGuideUnit("cm")}
+                    className={`px-5 py-3 font-medium ${
+                      guideUnit === "cm"
+                        ? "bg-white text-slate-900 border-b-2 border-slate-900"
+                        : "bg-slate-50 text-slate-500"
+                    }`}
+                  >
+                    cm
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border">
+                  <table className="min-w-[900px] w-full border-collapse">
+                    <thead>
+                      <tr className="bg-black text-white">
+                        <th className="px-6 py-4 text-left text-sm font-bold border-r border-slate-700">
+                          Nhãn sản phẩm
+                        </th>
+                        {guideSizes.map((size: string) => (
+                          <th
+                            key={size}
+                            className="px-6 py-4 text-center text-sm font-bold whitespace-nowrap"
+                          >
+                            {size}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(["Ngực", "Eo", "Hông"] as GuideLabel[]).map(
+                        (label: GuideLabel) => (
+                          <tr key={label} className="border-t">
+                            <td className="px-6 py-6 font-semibold text-slate-900 border-r bg-white whitespace-nowrap">
+                              {label}
+                            </td>
+                            {guideSizes.map((size: string) => (
+                              <td
+                                key={`${label}-${size}`}
+                                className="px-6 py-6 text-center text-slate-700 whitespace-nowrap"
+                              >
+                                {sizeGuideData[guideUnit][label][size]
+                                  ? `${sizeGuideData[guideUnit][label][size]} ${guideUnit}`
+                                  : "-"}
+                              </td>
+                            ))}
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="text-sm text-slate-500 mt-4">
+                  Cuộn ngang để xem đầy đủ nếu màn hình nhỏ.
+                </p>
+
+                <div className="mt-8 bg-slate-50 rounded-xl p-5">
+                  <h4 className="font-bold text-slate-900 mb-3">Mẹo chọn size</h4>
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-slate-600">
+                    <li>Đo ngực, eo, hông sát cơ thể nhưng không siết quá chặt.</li>
+                    <li>Nếu số đo nằm giữa 2 size, ưu tiên size lớn hơn để mặc thoải mái.</li>
+                    <li>
+                      Với đồ thể thao form ôm, chọn đúng size; với form rộng, có thể tăng 1
+                      size.
+                    </li>
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

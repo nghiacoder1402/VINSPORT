@@ -10,7 +10,7 @@ function normalizePaymentMethod(value) {
 
 function normalizePaymentStatus(value) {
   const status = String(value || "").toLowerCase();
-  if (status === "pending" || status === "paid" || status === "failed") {
+  if (["pending", "paid", "failed"].includes(status)) {
     return status;
   }
   return "pending";
@@ -18,14 +18,34 @@ function normalizePaymentStatus(value) {
 
 function normalizeOrderStatus(value) {
   const status = String(value || "").toLowerCase();
-  if (
-    ["pending", "confirmed", "shipping", "completed", "cancelled"].includes(
-      status
-    )
-  ) {
+  if (["pending", "confirmed", "shipping", "completed", "cancelled"].includes(status)) {
     return status;
   }
   return "pending";
+}
+
+function toDbOrderStatus(value) {
+  const status = normalizeOrderStatus(value);
+  if (status === "pending") return "Pending";
+  if (status === "confirmed") return "Confirmed";
+  if (status === "shipping") return "Shipping";
+  if (status === "completed") return "Completed";
+  if (status === "cancelled") return "Cancelled";
+  return "Pending";
+}
+
+function toDbPaymentStatus(value) {
+  const status = normalizePaymentStatus(value);
+  if (status === "pending") return "Pending";
+  if (status === "paid") return "Paid";
+  if (status === "failed") return "Failed";
+  return "Pending";
+}
+
+function toDbPaymentMethod(value) {
+  const method = String(value || "").toLowerCase();
+  if (method === "banking" || method === "bank") return "Bank";
+  return "COD";
 }
 
 const getAdminOrders = async (req, res) => {
@@ -85,6 +105,107 @@ const getAdminOrders = async (req, res) => {
   }
 };
 
+const updateAdminOrder = async (req, res) => {
+  const pool = await poolPromise;
+  const transaction = new sql.Transaction(pool);
+  let started = false;
+
+  try {
+    const orderId = Number(req.params.id);
+    const {
+      paymentStatus = "pending",
+      orderStatus = "pending",
+      paymentMethod = "cod",
+    } = req.body || {};
+
+    if (!orderId) {
+      return res.status(400).json({ message: "ID đơn hàng không hợp lệ" });
+    }
+
+    const normalizedOrderStatus = normalizeOrderStatus(orderStatus);
+    const normalizedPaymentStatus = normalizePaymentStatus(paymentStatus);
+
+    await transaction.begin();
+    started = true;
+
+    const orderCheck = await new sql.Request(transaction)
+      .input("orderId", sql.Int, orderId)
+      .query(`
+        SELECT TOP 1 order_id
+        FROM Orders
+        WHERE order_id = @orderId
+      `);
+
+    if (orderCheck.recordset.length === 0) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    await new sql.Request(transaction)
+      .input("orderId", sql.Int, orderId)
+      .input("status", sql.NVarChar(50), toDbOrderStatus(normalizedOrderStatus))
+      .query(`
+        UPDATE Orders
+        SET status = @status
+        WHERE order_id = @orderId
+      `);
+
+    const paymentCheck = await new sql.Request(transaction)
+      .input("orderId", sql.Int, orderId)
+      .query(`
+        SELECT TOP 1 payment_id
+        FROM Payments
+        WHERE order_id = @orderId
+        ORDER BY payment_id DESC
+      `);
+
+    if (paymentCheck.recordset.length > 0) {
+      const paymentId = paymentCheck.recordset[0].payment_id;
+
+      await new sql.Request(transaction)
+        .input("paymentId", sql.Int, paymentId)
+        .input("status", sql.NVarChar(50), toDbPaymentStatus(normalizedPaymentStatus))
+        .query(`
+          UPDATE Payments
+          SET status = @status
+          WHERE payment_id = @paymentId
+        `);
+    } else {
+      await new sql.Request(transaction)
+        .input("orderId", sql.Int, orderId)
+        .input("method", sql.NVarChar(50), toDbPaymentMethod(paymentMethod))
+        .input("status", sql.NVarChar(50), toDbPaymentStatus(normalizedPaymentStatus))
+        .query(`
+          INSERT INTO Payments (order_id, method, status)
+          VALUES (@orderId, @method, @status)
+        `);
+    }
+
+    await transaction.commit();
+
+    return res.json({
+      message: "Cập nhật đơn hàng thành công",
+      id: String(orderId),
+      paymentStatus: normalizedPaymentStatus,
+      orderStatus: normalizedOrderStatus,
+    });
+  } catch (error) {
+    if (started) {
+      try {
+        await transaction.rollback();
+      } catch {}
+    }
+
+    console.error("PUT /api/admin/orders/:id error:", error);
+    return res.status(500).json({
+      message:
+        error?.originalError?.info?.message ||
+        error.message ||
+        "Không cập nhật được đơn hàng",
+    });
+  }
+};
+
 const updateAdminOrderStatus = async (req, res) => {
   try {
     const orderId = Number(req.params.id);
@@ -95,15 +216,6 @@ const updateAdminOrderStatus = async (req, res) => {
     }
 
     const normalizedStatus = normalizeOrderStatus(status);
-
-    if (
-      !["pending", "confirmed", "shipping", "completed", "cancelled"].includes(
-        normalizedStatus
-      )
-    ) {
-      return res.status(400).json({ message: "Trạng thái đơn hàng không hợp lệ" });
-    }
-
     const pool = await poolPromise;
 
     const existed = await pool
@@ -119,13 +231,10 @@ const updateAdminOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
-    const dbStatus =
-      normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
-
     await pool
       .request()
       .input("orderId", sql.Int, orderId)
-      .input("status", sql.NVarChar(50), dbStatus)
+      .input("status", sql.NVarChar(50), toDbOrderStatus(normalizedStatus))
       .query(`
         UPDATE Orders
         SET status = @status
@@ -151,18 +260,13 @@ const updateAdminOrderStatus = async (req, res) => {
 const updateAdminPaymentStatus = async (req, res) => {
   try {
     const orderId = Number(req.params.id);
-    const { status } = req.body || {};
+    const { status, paymentMethod = "cod" } = req.body || {};
 
     if (!orderId) {
       return res.status(400).json({ message: "ID đơn hàng không hợp lệ" });
     }
 
     const normalizedStatus = normalizePaymentStatus(status);
-
-    if (!["pending", "paid", "failed"].includes(normalizedStatus)) {
-      return res.status(400).json({ message: "Trạng thái thanh toán không hợp lệ" });
-    }
-
     const pool = await poolPromise;
 
     const existed = await pool
@@ -175,23 +279,29 @@ const updateAdminPaymentStatus = async (req, res) => {
         ORDER BY payment_id DESC
       `);
 
-    if (existed.recordset.length === 0) {
-      return res.status(404).json({ message: "Không tìm thấy thông tin thanh toán" });
+    if (existed.recordset.length > 0) {
+      const paymentId = existed.recordset[0].payment_id;
+
+      await pool
+        .request()
+        .input("paymentId", sql.Int, paymentId)
+        .input("status", sql.NVarChar(50), toDbPaymentStatus(normalizedStatus))
+        .query(`
+          UPDATE Payments
+          SET status = @status
+          WHERE payment_id = @paymentId
+        `);
+    } else {
+      await pool
+        .request()
+        .input("orderId", sql.Int, orderId)
+        .input("method", sql.NVarChar(50), toDbPaymentMethod(paymentMethod))
+        .input("status", sql.NVarChar(50), toDbPaymentStatus(normalizedStatus))
+        .query(`
+          INSERT INTO Payments (order_id, method, status)
+          VALUES (@orderId, @method, @status)
+        `);
     }
-
-    const paymentId = existed.recordset[0].payment_id;
-    const dbStatus =
-      normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
-
-    await pool
-      .request()
-      .input("paymentId", sql.Int, paymentId)
-      .input("status", sql.NVarChar(50), dbStatus)
-      .query(`
-        UPDATE Payments
-        SET status = @status
-        WHERE payment_id = @paymentId
-      `);
 
     return res.json({
       message: "Cập nhật trạng thái thanh toán thành công",
@@ -211,6 +321,7 @@ const updateAdminPaymentStatus = async (req, res) => {
 
 module.exports = {
   getAdminOrders,
+  updateAdminOrder,
   updateAdminOrderStatus,
   updateAdminPaymentStatus,
 };

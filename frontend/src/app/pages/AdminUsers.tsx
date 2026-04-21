@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import api from "../api/api";
 
 type UserItem = {
@@ -35,6 +35,14 @@ export default function AdminUsers() {
   const [isLoading, setIsLoading] = useState(true);
   const [savingId, setSavingId] = useState<number | string | null>(null);
   const [searchEmail, setSearchEmail] = useState("");
+
+  const adminCount = useMemo(() => {
+    return users.filter((u) => u.role === "admin").length;
+  }, [users]);
+
+  const userCount = useMemo(() => {
+    return users.filter((u) => u.role === "user").length;
+  }, [users]);
 
   const loadUsers = async (email = "") => {
     try {
@@ -145,6 +153,22 @@ export default function AdminUsers() {
       </form>
 
       <div className="bg-white rounded-2xl shadow-sm border p-5">
+        <div className="flex items-center gap-3 flex-wrap mb-4">
+          <h2 className="text-xl font-semibold">Danh sách người dùng</h2>
+
+          <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-sm font-semibold">
+            Tổng số: {users.length}
+          </span>
+
+          <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-semibold">
+            Admin: {adminCount}
+          </span>
+
+          <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold">
+            User: {userCount}
+          </span>
+        </div>
+
         {isLoading ? (
           <div className="py-10 text-center text-slate-500">
             Đang tải người dùng...

@@ -24,10 +24,24 @@ const emptyForm: Product = {
   sizes: [],
 };
 
-function toArray(data: any): any[] {
+function toArray(data: unknown): any[] {
   if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.products)) return data.products;
-  if (Array.isArray(data?.data)) return data.data;
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "products" in data &&
+    Array.isArray((data as any).products)
+  ) {
+    return (data as any).products;
+  }
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "data" in data &&
+    Array.isArray((data as any).data)
+  ) {
+    return (data as any).data;
+  }
   return [];
 }
 
@@ -49,7 +63,7 @@ function normalizeProduct(item: any): Product {
   };
 }
 
-async function getProducts() {
+async function getProducts(): Promise<Product[]> {
   try {
     const data = await api.get("/admin/products");
     return toArray(data).map(normalizeProduct);
@@ -244,9 +258,14 @@ export default function AdminProducts() {
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           <div>
-            <label className="block text-sm font-medium mb-1">Tên sản phẩm</label>
+            <label className="block text-sm font-medium mb-1">
+              Tên sản phẩm
+            </label>
             <input
               name="name"
               value={form.name}
@@ -280,7 +299,9 @@ export default function AdminProducts() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Thương hiệu</label>
+            <label className="block text-sm font-medium mb-1">
+              Thương hiệu
+            </label>
             <input
               name="brand"
               value={form.brand || ""}
@@ -291,7 +312,9 @@ export default function AdminProducts() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Ảnh sản phẩm</label>
+            <label className="block text-sm font-medium mb-1">
+              Ảnh sản phẩm
+            </label>
             <input
               name="image"
               value={form.image || ""}
@@ -314,9 +337,7 @@ export default function AdminProducts() {
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-1">
-              Kích thước
-            </label>
+            <label className="block text-sm font-medium mb-1">Kích thước</label>
             <input
               name="sizes"
               value={Array.isArray(form.sizes) ? form.sizes.join(", ") : ""}
@@ -364,7 +385,12 @@ export default function AdminProducts() {
 
       <div className="bg-white rounded-2xl shadow-sm border p-5">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-          <h2 className="text-xl font-semibold">Danh sách sản phẩm</h2>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-xl font-semibold">Danh sách sản phẩm</h2>
+            <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-sm font-semibold">
+              Tổng số: {products.length}
+            </span>
+          </div>
 
           <input
             value={keyword}
@@ -375,7 +401,9 @@ export default function AdminProducts() {
         </div>
 
         {isLoading ? (
-          <div className="py-10 text-center text-slate-500">Đang tải sản phẩm...</div>
+          <div className="py-10 text-center text-slate-500">
+            Đang tải sản phẩm...
+          </div>
         ) : filteredProducts.length === 0 ? (
           <div className="py-10 text-center text-slate-500">
             Không có sản phẩm nào.

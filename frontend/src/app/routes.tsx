@@ -8,6 +8,7 @@ import { Checkout } from "./pages/Checkout";
 import { OrderTracking } from "./pages/OrderTracking";
 import { Auth } from "./pages/Auth";
 import AdminProducts from "./pages/AdminProducts";
+import AdminUsers from "./pages/AdminUsers";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 
 export const router = createBrowserRouter([
@@ -22,11 +23,20 @@ export const router = createBrowserRouter([
       { path: "checkout", Component: Checkout },
       { path: "tracking", Component: OrderTracking },
       { path: "login", Component: Auth },
+
       {
         path: "admin/products",
         element: (
           <ProtectedAdminRoute>
             <AdminProducts />
+          </ProtectedAdminRoute>
+        ),
+      },
+      {
+        path: "admin/users",
+        element: (
+          <ProtectedAdminRoute>
+            <AdminUsers />
           </ProtectedAdminRoute>
         ),
       },

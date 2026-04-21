@@ -84,6 +84,7 @@ function formatDate(value?: string) {
 function formatPaymentMethod(method: string) {
   if (method === "banking") return "Chuyển khoản";
   if (method === "cod") return "COD";
+  if (method === "momo") return "Momo";
   return method;
 }
 
@@ -138,6 +139,7 @@ export default function AdminOrders() {
     });
   }, [orders, keyword]);
 
+<<<<<<< HEAD
   const handleFieldChange = (
     id: number | string,
     field: "paymentStatus" | "orderStatus",
@@ -149,10 +151,16 @@ export default function AdminOrders() {
       )
     );
   };
+=======
+  const handleConfirmPayment = async (order: AdminOrder) => {
+    const ok = window.confirm(`Xác nhận đã nhận tiền cho đơn #${order.id}?`);
+    if (!ok) return;
+>>>>>>> 4736271e (update backend quan ly Orders)
 
   const handleUpdateOrder = async (order: AdminOrder) => {
     try {
       setSavingId(order.id);
+<<<<<<< HEAD
 
       try {
         await api.put(`/admin/orders/${order.id}`, {
@@ -169,6 +177,11 @@ export default function AdminOrders() {
           // fallback demo frontend-only
         }
       }
+=======
+      await api.put(`/admin/orders/${order.id}/payment-status`, {
+        status: "paid",
+      });
+>>>>>>> 4736271e (update backend quan ly Orders)
 
       alert("Cập nhật đơn hàng thành công.");
     } catch (error) {
@@ -179,12 +192,44 @@ export default function AdminOrders() {
     }
   };
 
+  const handleOrderStatusChange = (
+    id: number | string,
+    value: OrderStatus
+  ) => {
+    setOrders((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, orderStatus: value } : item
+      )
+    );
+  };
+
+  const handleSaveOrderStatus = async (order: AdminOrder) => {
+    try {
+      setSavingId(order.id);
+
+      await api.put(`/admin/orders/${order.id}/status`, {
+        status: order.orderStatus,
+      });
+
+      alert("Cập nhật trạng thái đơn hàng thành công.");
+    } catch (error) {
+      console.error("Lỗi cập nhật trạng thái đơn hàng:", error);
+      alert("Không cập nhật được trạng thái đơn hàng.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Quản lý đơn hàng</h1>
         <p className="text-slate-600 mt-2">
+<<<<<<< HEAD
           Cập nhật trạng thái thanh toán và trạng thái đơn hàng trực tiếp.
+=======
+          Xem đơn hàng, cập nhật trạng thái đơn hàng và xác nhận thanh toán.
+>>>>>>> 4736271e (update backend quan ly Orders)
         </p>
       </div>
 
@@ -215,7 +260,11 @@ export default function AdminOrders() {
           </div>
         ) : (
           <div className="overflow-x-auto">
+<<<<<<< HEAD
             <table className="w-full min-w-[1250px] border-collapse">
+=======
+            <table className="w-full min-w-[1400px] border-collapse">
+>>>>>>> 4736271e (update backend quan ly Orders)
               <thead>
                 <tr className="bg-slate-100 text-left">
                   <th className="p-3 border-b">Mã đơn</th>
@@ -261,35 +310,13 @@ export default function AdminOrders() {
                     </td>
 
                     <td className="p-3 border-b">
-                      <select
-                        value={order.orderStatus}
-                        onChange={(e) =>
-                          handleFieldChange(
-                            order.id,
-                            "orderStatus",
-                            e.target.value
-                          )
-                        }
-                        className="border rounded-lg px-3 py-2 min-w-[160px]"
-                      >
-                        <option value="pending">Chờ xử lý</option>
-                        <option value="confirmed">Đã xác nhận</option>
-                        <option value="shipping">Đang giao</option>
-                        <option value="completed">Hoàn thành</option>
-                        <option value="cancelled">Đã hủy</option>
-                      </select>
+
                     </td>
 
                     <td className="p-3 border-b">{formatDate(order.createdAt)}</td>
 
                     <td className="p-3 border-b">
-                      <button
-                        onClick={() => handleUpdateOrder(order)}
-                        disabled={savingId === order.id}
-                        className="px-4 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-60"
-                      >
-                        {savingId === order.id ? "Đang lưu..." : "Cập nhật"}
-                      </button>
+
                     </td>
                   </tr>
                 ))}

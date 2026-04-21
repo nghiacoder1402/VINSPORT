@@ -60,8 +60,12 @@ VALUES
 (N'Bùi Văn M', 'm@gmail.com', '123456', '0901111122', N'Nghệ An'),
 (N'Đỗ Văn N', 'n@gmail.com', '123456', '0901111123', N'Hà Nội'),
 (N'Ngô Văn O', 'o@gmail.com', '123456', '0901111124', N'Hồ Chí Minh'),
-(N'Huỳnh Văn P', 'p@gmail.com', '123456', '0901111125', N'Bình Dương');
-
+(N'Huỳnh Văn P', 'p@gmail.com', '123456', '0901111125', N'Bình Dương'),
+(N'anhemtoi','vinsport@gmail.com','123','0968686868',N'PTIT');
+--upd admin
+UPDATE Users
+SET role = N'admin'
+WHERE email = 'vinsport@gmail.com';
 --6. PRODUCTS
 INSERT INTO Products (name, description, brand_id, category_id)
 VALUES 

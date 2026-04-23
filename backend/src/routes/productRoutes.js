@@ -12,7 +12,8 @@ router.get("/", async (req, res) => {
 
     const result = await pool
       .request()
-      .input("keyword", sql.NVarChar, `%${keyword}%`)
+      .input("keyword", sql.NVarChar, keyword)
+      .input("likeKeyword", sql.NVarChar, `%${keyword}%`)
       .query(`
         SELECT 
           p.product_id,
@@ -32,11 +33,11 @@ router.get("/", async (req, res) => {
         LEFT JOIN Categories c ON p.category_id = c.category_id
         LEFT JOIN ProductVariants pv ON p.product_id = pv.product_id
         WHERE
-          @keyword = '%%'
-          OR p.name LIKE @keyword
-          OR ISNULL(p.description, '') LIKE @keyword
-          OR ISNULL(b.name, '') LIKE @keyword
-          OR ISNULL(c.name, '') LIKE @keyword
+          @keyword = ''
+          OR p.name LIKE @likeKeyword
+          OR ISNULL(p.description, '') LIKE @likeKeyword
+          OR ISNULL(b.name, '') LIKE @likeKeyword
+          OR ISNULL(c.name, '') LIKE @likeKeyword
         GROUP BY
           p.product_id,
           p.name,

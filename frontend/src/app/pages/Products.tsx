@@ -16,6 +16,28 @@ const normalizeCategory = (value?: string) => {
   return "";
 };
 
+const normalizeProduct = (product: any) => ({
+  id: product.id ?? product.product_id ?? product.variant_id ?? crypto.randomUUID(),
+  name: product.name ?? product.product_name ?? "",
+  brand: product.brand ?? product.brand_name ?? "",
+  category: product.category ?? product.category_name ?? "",
+  price:
+    Number(
+      product.price ??
+        product.final_price_from ??
+        product.original_price_from ??
+        product.min_price ??
+        0
+    ) || 0,
+  image:
+    product.image ??
+    product.thumbnail ??
+    product.image_url ??
+    product.imageUrl ??
+    "",
+  ...product,
+});
+
 export const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -42,12 +64,18 @@ export const Products = () => {
           params: { search: searchQuery },
         });
 
-        setProducts(Array.isArray(data) ? data : []);
+        const rawProducts = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.products)
+          ? data.products
+          : [];
+
+        setProducts(rawProducts.map(normalizeProduct));
       } catch (error) {
         console.error("Lỗi lấy sản phẩm:", error);
 
         if (import.meta.env.VITE_USE_MOCK === "true") {
-          setProducts(MOCK_PRODUCTS);
+          setProducts(MOCK_PRODUCTS.map(normalizeProduct));
         } else {
           setProducts([]);
           toast.error("Không thể tải danh sách sản phẩm từ máy chủ!");
@@ -111,15 +139,16 @@ export const Products = () => {
 
       const productPrice =
         typeof product.price === "number" ? product.price : Number(product.price || 0);
+
       const matchPrice = productPrice >= minPrice && productPrice <= maxPrice;
 
       return matchCategory && matchBrand && matchPrice;
     });
 
     if (sortOrder === "asc") {
-      result = [...result].sort((a, b) => (Number(a.price || 0) - Number(b.price || 0)));
+      result = [...result].sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
     } else if (sortOrder === "desc") {
-      result = [...result].sort((a, b) => (Number(b.price || 0) - Number(a.price || 0)));
+      result = [...result].sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
     }
 
     return result;
@@ -311,9 +340,7 @@ export const Products = () => {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-100">
               <Loader2 className="w-12 h-12 text-orange-600 animate-spin mb-4" />
-              <p className="text-slate-500 font-medium">
-                Đang kết nối hệ thống VinSport...
-              </p>
+              <p className="text-slate-500 font-medium">Đang kết nối hệ thống VinSport...</p>
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">

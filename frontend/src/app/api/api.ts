@@ -1,11 +1,14 @@
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
+  baseURL,
   headers: {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
   },
-  timeout: 5000,
+  timeout: 10000,
 });
 
 api.interceptors.request.use(
@@ -15,6 +18,8 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    config.headers["ngrok-skip-browser-warning"] = "true";
 
     return config;
   },

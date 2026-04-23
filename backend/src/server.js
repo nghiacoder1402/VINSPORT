@@ -15,38 +15,19 @@ const adminOrderRoutes = require("./routes/adminOrderRoutes");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const extraOrigins = (process.env.FRONTEND_URL || "")
-  .split(",")
-  .map((item) => item.trim().replace(/\/+$/, ""))
-  .filter(Boolean);
+const corsOptions = {
+  origin: true,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "ngrok-skip-browser-warning",
+  ],
+};
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "https://vinsportv1-kappa.vercel.app",
-  ...extraOrigins,
-];
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-
-      const normalizedOrigin = origin.replace(/\/+$/, "");
-
-      const isAllowed =
-        allowedOrigins.includes(normalizedOrigin) ||
-        /^https:\/\/vinsportv1-.*\.vercel\.app$/.test(normalizedOrigin);
-
-      if (isAllowed) {
-        return callback(null, true);
-      }
-
-      return callback(new Error(`CORS chặn origin: ${normalizedOrigin}`));
-    },
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 

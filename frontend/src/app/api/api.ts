@@ -1,9 +1,7 @@
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL;
-
 const api = axios.create({
-  baseURL,
+  baseURL: "https://reprise-royal-snowbound.ngrok-free.dev/api",
   headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",
@@ -29,7 +27,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    console.error("Lỗi kết nối hệ thống VinSport:", error.message);
+    console.error("Lỗi kết nối hệ thống VinSport:", error);
 
     if (error?.response?.status === 401) {
       localStorage.removeItem("vinsport_token");
